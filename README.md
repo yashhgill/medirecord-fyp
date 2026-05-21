@@ -1,16 +1,60 @@
-# React + Vite
+# HarNova MediSolutions
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+HarNova MediSolutions is a final-year project demo for a hybrid-cloud patient
+health record system. It demonstrates how a clinic can keep operating when the
+internet fails by switching from the cloud record store to an encrypted local
+hard disk or NAS cache.
 
-Currently, two official plugins are available:
+## Project Idea
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- NFC cards contain only an IC number or tokenized patient identifier.
+- The kiosk reads the NFC payload and uses it to pull the patient record.
+- Doctors and nurses use the same record source for clinical review and notes.
+- Administration monitors billing, appointments, system health, and sync status.
+- When cloud connectivity is healthy, the cloud is the system of record.
+- When the network fails, the app reads from the local disk cache and queues
+  updates until cloud sync is restored.
 
-## React Compiler
+## Recommended Cloud Platform
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Use AWS as the main cloud platform for the production design.
 
-## Expanding the ESLint configuration
+Recommended region:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Primary: AWS Asia Pacific Malaysia, `ap-southeast-5`
+- Disaster recovery: AWS Singapore, `ap-southeast-1`, only if cross-border
+  recovery copies are allowed by the compliance policy
+
+Recommended services:
+
+- API layer: Amazon API Gateway with AWS Lambda, or ECS Fargate for a container API
+- Health data layer: AWS HealthLake for FHIR-first records, or Amazon RDS
+  PostgreSQL for a simpler FYP implementation
+- File/archive layer: Amazon S3 with Object Lock for immutable record exports
+- Backup layer: AWS Backup with Vault Lock
+- Identity: Amazon Cognito, IAM Identity Center, and role-based access control
+- Encryption: AWS KMS customer-managed keys
+- Monitoring/security: CloudTrail, CloudWatch, GuardDuty, Security Hub, AWS WAF
+- Hybrid/local edge: encrypted NAS or hard disk cache with a local sync service
+
+## Production Security Baseline
+
+- Do not store medical history on the NFC card.
+- Encrypt PHI at rest and in transit.
+- Use least-privilege roles for doctor, nurse, admin, and kiosk users.
+- Require MFA for staff accounts.
+- Keep immutable audit logs of every patient record view and update.
+- Keep immutable backups and run restore drills.
+- Use a queue for offline writes so sync can resume safely.
+- Add conflict resolution rules for offline edits.
+- Segment the kiosk/NFC network away from the database network.
+- Run privacy impact and threat-model reviews before using real patient data.
+
+## Demo Commands
+
+```bash
+npm install
+npm run dev
+npm run build
+npm run lint
+```

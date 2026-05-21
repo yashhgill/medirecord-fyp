@@ -170,6 +170,44 @@ const staff = [
     role: "Self-service Mode",
     department: "Front Desk",
   },
+  {
+    id: "architecture",
+    name: "System Blueprint",
+    role: "Hybrid Cloud Architecture",
+    department: "Security and Availability",
+  },
+];
+
+const architectureLayers = [
+  {
+    title: "NFC identity layer",
+    detail:
+      "Cards store only the IC number or a tokenized patient identifier. Full PHI stays in the secured record store.",
+  },
+  {
+    title: "Clinic edge layer",
+    detail:
+      "Kiosk, doctor, nurse, and admin workstations query a local encrypted disk or NAS cache when internet service is degraded.",
+  },
+  {
+    title: "Cloud system of record",
+    detail:
+      "AWS Malaysia region hosts the primary API, database, object archive, audit logs, backup vault, and monitoring stack.",
+  },
+  {
+    title: "Sync and conflict control",
+    detail:
+      "A background sync service queues offline writes, reconciles timestamps, and sends signed changes back to the cloud.",
+  },
+];
+
+const securityControls = [
+  "Encrypt PHI at rest with KMS-managed keys and encrypt traffic with TLS 1.3.",
+  "Use role-based access for doctor, nurse, admin, and kiosk workflows.",
+  "Store audit logs in immutable storage so record access can be investigated.",
+  "Keep NFC cards free of medical records; they should only identify the patient.",
+  "Run backups with immutable retention and test restore drills every month.",
+  "Segment the clinic network so kiosk/NFC devices cannot directly reach the database.",
 ];
 
 const svg = {
@@ -259,6 +297,101 @@ function Metric({ label, value, tone = "blue" }) {
   );
 }
 
+function DataSourceBanner({ mode, setMode }) {
+  const isCloud = mode === "cloud";
+
+  return (
+    <section className={`source-banner ${isCloud ? "cloud" : "local"}`}>
+      <div>
+        <small>Active data source</small>
+        <strong>{isCloud ? "Cloud primary database" : "Local encrypted disk fallback"}</strong>
+        <p>
+          {isCloud
+            ? "Network is healthy, so portals read from the cloud and keep the local hard disk synchronized."
+            : "Network issue simulated. Portals continue from the local disk cache and queue writes for sync."}
+        </p>
+      </div>
+      <button className="secondary" onClick={() => setMode(isCloud ? "local" : "cloud")}>
+        Simulate {isCloud ? "network outage" : "cloud recovery"}
+      </button>
+    </section>
+  );
+}
+
+function ArchitectureBlueprint({ mode, setMode }) {
+  return (
+    <main className="workspace">
+      <section className="blueprint-hero panel">
+        <div>
+          <h1>Hybrid cloud design for patient health records</h1>
+          <p>
+            HarNova runs cloud-first for consistency and analytics, then falls back
+            to the clinic hard disk when connectivity fails so appointments,
+            check-in, and clinical review can continue.
+          </p>
+        </div>
+        <div className="blueprint-stack">
+          <span>NFC Card</span>
+          <strong>IC-009012</strong>
+          <span>Kiosk reader to secure patient lookup</span>
+        </div>
+      </section>
+
+      <DataSourceBanner mode={mode} setMode={setMode} />
+
+      <section className="flow-grid">
+        {architectureLayers.map((layer, index) => (
+          <article className="flow-card panel" key={layer.title}>
+            <small>Step {index + 1}</small>
+            <h2>{layer.title}</h2>
+            <p>{layer.detail}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="blueprint-grid">
+        <article className="panel cloud-choice">
+          <div className="panel-title">
+            <span>
+              <small>Recommended platform</small>
+              <strong>AWS Asia Pacific Malaysia</strong>
+            </span>
+          </div>
+          <p>
+            Use AWS `ap-southeast-5` for data residency, low latency, and
+            three-Availability-Zone high availability. Keep Singapore as a
+            secondary disaster-recovery target only if your compliance rules
+            allow cross-border recovery copies.
+          </p>
+          <div className="stack-list">
+            <span>API: ECS Fargate or Lambda behind API Gateway</span>
+            <span>FHIR/PHR store: AWS HealthLake or RDS PostgreSQL</span>
+            <span>Files: S3 with Object Lock for immutable archives</span>
+            <span>Backups: AWS Backup Vault Lock</span>
+            <span>Security: IAM, Cognito, KMS, WAF, GuardDuty, CloudTrail</span>
+          </div>
+        </article>
+        <article className="panel">
+          <div className="panel-title">
+            <span>
+              <small>PHR security controls</small>
+              <strong>Minimum production baseline</strong>
+            </span>
+          </div>
+          <div className="security-list">
+            {securityControls.map((control) => (
+              <div className="security-row" key={control}>
+                <span />
+                <p>{control}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+    </main>
+  );
+}
+
 function PatientRow({ patient, active, onClick }) {
   return (
     <button className={`patient-row ${active ? "active" : ""}`} onClick={onClick}>
@@ -327,13 +460,14 @@ function AIConsole({ patient, provider, setProvider }) {
   );
 }
 
-function ClinicalWorkspace({ selected, setSelected, provider, setProvider }) {
+function ClinicalWorkspace({ selected, setSelected, provider, setProvider, mode, setMode }) {
   const [tab, setTab] = useState("overview");
   const [note, setNote] = useState("");
   const [savedNote, setSavedNote] = useState("");
 
   return (
     <main className="workspace">
+      <DataSourceBanner mode={mode} setMode={setMode} />
       <section className="hero-grid">
         <div className="hero-copy">
           <h1>HarNova MediSolutions</h1>
@@ -519,9 +653,10 @@ function ClinicalWorkspace({ selected, setSelected, provider, setProvider }) {
   );
 }
 
-function OperationsConsole({ provider, setProvider }) {
+function OperationsConsole({ provider, setProvider, mode, setMode }) {
   return (
     <main className="workspace">
+      <DataSourceBanner mode={mode} setMode={setMode} />
       <section className="ops-header panel">
         <div>
           <small>Administration</small>
@@ -537,7 +672,7 @@ function OperationsConsole({ provider, setProvider }) {
         />
       </section>
       <section className="metrics-grid">
-        <Metric label="Cloud sync" value="Online" tone="green" />
+        <Metric label="Cloud sync" value={mode === "cloud" ? "Online" : "Queued"} tone={mode === "cloud" ? "green" : "amber"} />
         <Metric label="NFC readers" value="3/3" />
         <Metric label="Queue delay" value="11m" tone="amber" />
         <Metric label="Open invoices" value="1" tone="red" />
@@ -569,7 +704,13 @@ function OperationsConsole({ provider, setProvider }) {
               <strong>System status</strong>
             </span>
           </div>
-          {["AWS RDS mirror", "Local NAS backup", "Cloudflare edge", "NFC bridge", "AI provider route"].map(
+          {[
+            mode === "cloud" ? "Cloud primary database" : "Local disk fallback",
+            "Encrypted NAS mirror",
+            "Immutable backup vault",
+            "NFC reader bridge",
+            "AI provider route",
+          ].map(
             (item) => (
               <div className="status-row" key={item}>
                 <span />
@@ -585,17 +726,47 @@ function OperationsConsole({ provider, setProvider }) {
   );
 }
 
-function Kiosk() {
+function Kiosk({ mode, setMode }) {
   const [selected, setSelected] = useState(patients[0]);
   const [confirmed, setConfirmed] = useState(false);
+  const [nfcValue, setNfcValue] = useState("IC-009012");
+  const [scanError, setScanError] = useState("");
+
+  function scanCard() {
+    const patient = patients.find(
+      (item) => item.id.toLowerCase() === nfcValue.trim().toLowerCase(),
+    );
+
+    if (!patient) {
+      setScanError("No patient record found for this IC number.");
+      return;
+    }
+
+    setSelected(patient);
+    setConfirmed(false);
+    setScanError("");
+  }
 
   return (
     <main className="kiosk">
+      <DataSourceBanner mode={mode} setMode={setMode} />
       <section className="kiosk-shell">
         <div className="kiosk-media" />
         <div className="kiosk-panel">
           <h1>HarNova patient check-in</h1>
-          <p>Fast self-service arrival, appointment review, and billing support.</p>
+          <p>Tap an NFC card or enter the IC number to pull the patient record.</p>
+          <div className="nfc-reader panel">
+            <small>NFC reader payload</small>
+            <div className="nfc-input-row">
+              <input
+                value={nfcValue}
+                onChange={(event) => setNfcValue(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && scanCard()}
+              />
+              <button className="primary" onClick={scanCard}>Scan</button>
+            </div>
+            {scanError && <span className="kiosk-error">{scanError}</span>}
+          </div>
           <div className="kiosk-patients">
             {patients.map((patient) => (
               <button
@@ -635,13 +806,17 @@ function Shell() {
   const [activeStaff, setActiveStaff] = useState(staff[0]);
   const [selected, setSelected] = useState(patients[2]);
   const [provider, setProvider] = useState("openrouter");
+  const [mode, setMode] = useState("cloud");
 
   const portal = useMemo(() => {
+    if (activeStaff.id === "architecture") {
+      return <ArchitectureBlueprint mode={mode} setMode={setMode} />;
+    }
     if (activeStaff.id === "admin") {
-      return <OperationsConsole provider={provider} setProvider={setProvider} />;
+      return <OperationsConsole provider={provider} setProvider={setProvider} mode={mode} setMode={setMode} />;
     }
     if (activeStaff.id === "kiosk") {
-      return <Kiosk />;
+      return <Kiosk mode={mode} setMode={setMode} />;
     }
     return (
       <ClinicalWorkspace
@@ -649,9 +824,11 @@ function Shell() {
         setSelected={setSelected}
         provider={provider}
         setProvider={setProvider}
+        mode={mode}
+        setMode={setMode}
       />
     );
-  }, [activeStaff.id, provider, selected]);
+  }, [activeStaff.id, mode, provider, selected]);
 
   return (
     <div className="app-shell">
