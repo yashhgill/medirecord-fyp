@@ -1018,6 +1018,30 @@ textarea {
   margin: 0 0 22px;
 }
 
+.journey-steps {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.journey-steps span {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #8195ad;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.journey-steps span.active {
+  background: rgba(23, 103, 207, 0.34);
+  border-color: rgba(95, 158, 255, 0.62);
+  color: #fff;
+}
+
 .nfc-reader {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.12);
@@ -1092,12 +1116,53 @@ textarea {
 }
 
 .kiosk-card small,
-.kiosk-card span {
+.kiosk-card span,
+.ticket-card small,
+.ticket-card span {
   color: #b6c6d8;
 }
 
 .kiosk-card strong {
   font-size: 20px;
+}
+
+.kiosk-card select {
+  margin: 8px 0;
+  width: 100%;
+}
+
+.ticket-card {
+  background: linear-gradient(145deg, #ffffff, #eaf2ff);
+  border: 1px solid #cfe1ff;
+  border-radius: 8px;
+  color: var(--ink);
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.ticket-card small,
+.ticket-card span {
+  color: var(--muted);
+}
+
+.ticket-card strong {
+  color: var(--blue);
+  font-size: 72px;
+  line-height: 0.95;
+}
+
+.ticket-card.pharmacy strong {
+  color: var(--green);
+}
+
+.payment-buttons {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 10px 0;
 }
 
 .wide {
@@ -1164,7 +1229,9 @@ textarea {
   .metrics-grid,
   .detail-grid,
   .prompt-box,
-  .nfc-input-row {
+  .nfc-input-row,
+  .journey-steps,
+  .payment-buttons {
     grid-template-columns: 1fr;
   }
 

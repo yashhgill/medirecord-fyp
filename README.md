@@ -15,6 +15,23 @@ hard disk or NAS cache.
 - When the network fails, the app reads from the local disk cache and queues
   updates until cloud sync is restored.
 
+## Patient Kiosk Flow
+
+1. Patient visits the clinic.
+2. Patient goes to the kiosk.
+3. Patient taps the IC/NFC card on the reader.
+4. The kiosk reads the IC number and pulls the patient record.
+5. If the patient has an appointment, the kiosk confirms arrival and prints a
+   clinic queue number.
+6. If the patient has no appointment, the kiosk lets them create a walk-in
+   appointment and then prints a queue number.
+7. Patient receives treatment from the clinic.
+8. Patient returns to the kiosk and taps the IC/NFC card again.
+9. The kiosk displays outstanding bills and accepts payment.
+10. After payment, the kiosk prints a medication queue number.
+11. Patient goes to the pharmacy counter and collects medication.
+12. The visit is completed and the patient can go home.
+
 ## Recommended Cloud Platform
 
 Use AWS as the main cloud platform for the production design.

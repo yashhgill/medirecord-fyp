@@ -728,9 +728,13 @@ function OperationsConsole({ provider, setProvider, mode, setMode }) {
 
 function Kiosk({ mode, setMode }) {
   const [selected, setSelected] = useState(patients[0]);
-  const [confirmed, setConfirmed] = useState(false);
+  const [stage, setStage] = useState("arrival");
   const [nfcValue, setNfcValue] = useState("IC-009012");
   const [scanError, setScanError] = useState("");
+  const [appointmentType, setAppointmentType] = useState("General Medicine");
+  const hasAppointment = selected.id !== "IC-001234";
+  const ticket = hasAppointment ? "A004" : "W017";
+  const pharmacyTicket = selected.outstanding ? "M022" : "M015";
 
   function scanCard() {
     const patient = patients.find(
@@ -743,9 +747,18 @@ function Kiosk({ mode, setMode }) {
     }
 
     setSelected(patient);
-    setConfirmed(false);
+    setStage("arrival");
     setScanError("");
   }
+
+  const journey = [
+    { id: "arrival", label: "Tap IC" },
+    { id: "queue", label: "Queue" },
+    { id: "treatment", label: "Treatment" },
+    { id: "payment", label: "Payment" },
+    { id: "pharmacy", label: "Medication" },
+    { id: "done", label: "Home" },
+  ];
 
   return (
     <main className="kiosk">
@@ -753,8 +766,18 @@ function Kiosk({ mode, setMode }) {
       <section className="kiosk-shell">
         <div className="kiosk-media" />
         <div className="kiosk-panel">
-          <h1>HarNova patient check-in</h1>
-          <p>Tap an NFC card or enter the IC number to pull the patient record.</p>
+          <h1>HarNova patient journey</h1>
+          <p>Tap IC, get a queue number, pay after treatment, and collect medication.</p>
+          <div className="journey-steps">
+            {journey.map((item, index) => (
+              <span
+                key={item.id}
+                className={journey.findIndex((step) => step.id === stage) >= index ? "active" : ""}
+              >
+                {item.label}
+              </span>
+            ))}
+          </div>
           <div className="nfc-reader panel">
             <small>NFC reader payload</small>
             <div className="nfc-input-row">
@@ -763,7 +786,7 @@ function Kiosk({ mode, setMode }) {
                 onChange={(event) => setNfcValue(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && scanCard()}
               />
-              <button className="primary" onClick={scanCard}>Scan</button>
+              <button className="primary" onClick={scanCard}>Tap IC</button>
             </div>
             {scanError && <span className="kiosk-error">{scanError}</span>}
           </div>
@@ -774,7 +797,7 @@ function Kiosk({ mode, setMode }) {
                 className={selected.id === patient.id ? "active" : ""}
                 onClick={() => {
                   setSelected(patient);
-                  setConfirmed(false);
+                  setStage("arrival");
                 }}
               >
                 <img src={patient.image} alt="" />
@@ -785,17 +808,86 @@ function Kiosk({ mode, setMode }) {
               </button>
             ))}
           </div>
-          <div className="kiosk-card">
-            <small>Upcoming appointment</small>
-            <strong>{selected.appointments[0].reason}</strong>
-            <span>
-              {selected.appointments[0].date} · {selected.appointments[0].time}
-            </span>
-          </div>
-          <button className="primary wide" onClick={() => setConfirmed(true)}>
-            Confirm arrival
-          </button>
-          {confirmed && <div className="success">You are checked in. Queue number A004.</div>}
+          {stage === "arrival" && (
+            <div className="kiosk-card">
+              <small>{hasAppointment ? "Appointment found" : "No appointment found"}</small>
+              <strong>{hasAppointment ? selected.appointments[0].reason : "Create walk-in appointment"}</strong>
+              <span>
+                {hasAppointment
+                  ? `${selected.appointments[0].date} · ${selected.appointments[0].time}`
+                  : "Choose a clinic service to create today's visit."}
+              </span>
+              {!hasAppointment && (
+                <select
+                  value={appointmentType}
+                  onChange={(event) => setAppointmentType(event.target.value)}
+                >
+                  <option>General Medicine</option>
+                  <option>Cardiology</option>
+                  <option>Obstetrics</option>
+                  <option>Pharmacy consultation</option>
+                </select>
+              )}
+              <button className="primary wide" onClick={() => setStage("queue")}>
+                {hasAppointment ? "Confirm arrival and print number" : "Make appointment and print number"}
+              </button>
+            </div>
+          )}
+          {stage === "queue" && (
+            <div className="ticket-card">
+              <small>Clinic queue number</small>
+              <strong>{ticket}</strong>
+              <span>{hasAppointment ? selected.appointments[0].department : appointmentType}</span>
+              <button className="secondary wide" onClick={() => setStage("treatment")}>
+                Mark treatment completed
+              </button>
+            </div>
+          )}
+          {stage === "treatment" && (
+            <div className="kiosk-card">
+              <small>Treatment completed</small>
+              <strong>Return to kiosk and tap IC again</strong>
+              <span>Patient record is ready for billing and medication instructions.</span>
+              <button className="primary wide" onClick={() => setStage("payment")}>
+                Continue to bill payment
+              </button>
+            </div>
+          )}
+          {stage === "payment" && (
+            <div className="kiosk-card">
+              <small>Outstanding bill</small>
+              <strong>{selected.outstanding ? `RM${selected.outstanding}` : "No balance due"}</strong>
+              <span>{selected.outstanding ? "Pay at kiosk to unlock pharmacy queue." : "Proceed to medication collection."}</span>
+              <div className="payment-buttons">
+                <button className="secondary">Card</button>
+                <button className="secondary">DuitNow QR</button>
+                <button className="secondary">Cash counter</button>
+              </div>
+              <button className="primary wide" onClick={() => setStage("pharmacy")}>
+                Payment complete, print pharmacy number
+              </button>
+            </div>
+          )}
+          {stage === "pharmacy" && (
+            <div className="ticket-card pharmacy">
+              <small>Medication queue number</small>
+              <strong>{pharmacyTicket}</strong>
+              <span>Please proceed to the pharmacy counter for medication collection.</span>
+              <button className="secondary wide" onClick={() => setStage("done")}>
+                Medication collected
+              </button>
+            </div>
+          )}
+          {stage === "done" && (
+            <div className="kiosk-card">
+              <small>Visit completed</small>
+              <strong>Patient may go home</strong>
+              <span>Receipt and medication instructions have been attached to the patient record.</span>
+              <button className="primary wide" onClick={() => setStage("arrival")}>
+                Start next patient
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </main>
